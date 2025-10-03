@@ -13,23 +13,18 @@
 <body>
   <!--
     HOW TO USE
-    1) Drop your iPhone frame PNG into images/iphone_frame/iphone16pro_frame.png
-       The screen area inside the frame is controlled by CSS variables:
-       --screen-inset-top/right/bottom/left. Tweak them in styles.css to match your asset.
-    2) Press Play to simulate time. Use +5m to jump.
-    3) Overlays appear at thresholds relative to yesterday: t_minus, t_zero, t_plus.
-    4) The learning system stores choices in localStorage under keys starting with "stw_".
+    1) Put your iPhone frame PNG at images/iphone_frame.png
+    2) Press Play to simulate. Use +5m to jump.
+    3) Overlays appear at thresholds t_minus, t_zero, t_plus.
+    4) Learning + day demo lives in localStorage (keys: stw_*).
   -->
 
   <main class="page">
     <header class="topbar">
-      <h1>Screen Time Widget</h1>
-      <button class="btn ghost" id="openSettingsBtn" aria-label="Open settings">
-        <!-- gear icon -->
-        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm8.94-2.61-.78 1.35a1 1 0 0 1-.9.5h-.83a7.95 7.95 0 0 1-.72 1.75l.59.59a1 1 0 0 1 0 1.42l-1.35.78a1 1 0 0 1-1.14-.19l-.59-.59c-.56.27-1.15.49-1.75.63v.83a1 1 0 0 1-.5.9l-1.35.78a1 1 0 0 1-1 0l-1.35-.78a1 1 0 0 1-.5-.9v-.83a7.9 7.9 0 0 1-1.75-.63l-.59.59a1 1 0 0 1-1.42 0L4.7 18a1 1 0 0 1 0-1.42l.59-.59c-.27-.56-.49-1.15-.63-1.75H3.83a1 1 0 0 1-.9-.5l-.78-1.35a1 1 0 0 1 .19-1.14l.59-.59c-.14-.6-.23-1.2-.26-1.82h-.83a1 1 0 0 1-.9-.5L.36 6.1a1 1 0 0 1 .19-1.14l1.35-.78a1 1 0 0 1 1 0l.83.48c.5-.45 1.04-.85 1.62-1.2l-.3-.83a1 1 0 0 1 .5-1.22L7.9.36a1 1 0 0 1 1.14.19l.59.59c.6-.14 1.2-.23 1.82-.26V.83a1 1 0 0 1 .5-.9l1.35-.78a1 1 0 0 1 1 0l1.35.78c.34.2.55.56.5.95v.83c.6.03 1.21.12 1.82.26l.59-.59a1 1 0 0 1 1.42 0L21.9 2.1a1 1 0 0 1 0 1.42l-.59.59c.35.58.65 1.19.9 1.82l.83-.48a1 1 0 0 1 1.22.5l.78 1.35a1 1 0 0 1-.19 1.14l-.59.59c.14.6.23 1.2.26 1.82h.83c.39 0 .75.19.95.5l.78 1.35a1 1 0 0 1-.19 1.14l-1.35.78a1 1 0 0 1-1 0l-.83-.48c-.25.63-.55 1.24-.9 1.82l.59.59c.3.3.38.76.19 1.14Z"/>
-        </svg>
-      </button>
+      <h1>Screen Time Widget
+        <span class="chip chip--muted" id="dayChip">Day <span id="dayChipValue">1</span></span>
+      </h1>
+      <!-- settings button removed -->
     </header>
 
     <section class="frame-wrap">
@@ -108,9 +103,10 @@
         </div>
       </div>
 
-      <!-- Right rail: quick settings -->
+      <!-- Right rail: Simulation panel -->
       <aside class="panel">
-        <h3>Simulation</h3>
+        <h3>Simulation <span class="chip" id="dayLabelSide">Day 1</span></h3>
+
         <div class="row">
           <label>Yesterday (min)</label>
           <input type="number" id="yesterdayInput" min="0" step="5" value="230" />
@@ -141,6 +137,18 @@
             <option value="evening" selected>Evening</option>
           </select>
         </div>
+
+        <!-- Day controls -->
+        <div class="row inline">
+          <label class="checkbox">
+            <input type="checkbox" id="carryCheckbox" checked />
+            <span>Carry yesterday = today</span>
+          </label>
+        </div>
+        <div class="row">
+          <button class="btn" id="nextDayBtn">Next day ▶︎</button>
+        </div>
+
         <div class="row">
           <button class="btn danger" id="resetLearning">Reset learning</button>
         </div>
@@ -149,43 +157,7 @@
     </section>
   </main>
 
-  <!-- Settings drawer -->
-  <div class="drawer" id="settingsDrawer" aria-hidden="true">
-    <div class="drawer__panel" role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
-      <div class="drawer__header">
-        <h2 id="drawerTitle">Settings</h2>
-        <button class="btn icon" id="closeSettingsBtn" aria-label="Close settings">✕</button>
-      </div>
-
-      <div class="drawer__content">
-        <div class="row">
-          <label for="goalInput">Personal goal (min)</label>
-          <input type="number" id="goalInput" min="0" step="5" value="200" />
-        </div>
-        <div class="row">
-          <label for="tonePref">Default tone</label>
-          <select id="tonePref">
-            <option value="auto" selected>Auto, let it learn</option>
-            <option value="motivational">Always motivational</option>
-            <option value="mixed">Always mixed</option>
-            <option value="confrontational">Always confrontational</option>
-          </select>
-        </div>
-        <div class="row">
-          <label for="langPref">Language</label>
-          <select id="langPref">
-            <option value="en" selected>English</option>
-            <option value="nl">Nederlands</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="drawer__footer">
-        <button class="btn primary" id="saveSettings">Save</button>
-        <button class="btn" id="cancelSettings">Cancel</button>
-      </div>
-    </div>
-  </div>
+  <!-- Settings drawer removed -->
 
   <script src="app.js"></script>
 </body>
