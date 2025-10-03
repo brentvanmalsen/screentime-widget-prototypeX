@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, viewport-fit=cover"
+  />
+  <title>Screen Time Widget Prototype</title>
+  <link rel="stylesheet" href="style.css" />
+  <meta name="description" content="Prototype of an adaptive, emotion-driven screen time widget with learning overlays." />
+</head>
+<body>
+  <!--
+    HOW TO USE
+    1) Drop your iPhone frame PNG into images/iphone_frame/iphone16pro_frame.png
+       The screen area inside the frame is controlled by CSS variables:
+       --screen-inset-top/right/bottom/left. Tweak them in styles.css to match your asset.
+    2) Press Play to simulate time. Use +5m to jump.
+    3) Overlays appear at thresholds relative to yesterday: t_minus, t_zero, t_plus.
+    4) The learning system stores choices in localStorage under keys starting with "stw_".
+  -->
+
+  <main class="page">
+    <header class="topbar">
+      <h1>Screen Time Widget</h1>
+      <button class="btn ghost" id="openSettingsBtn" aria-label="Open settings">
+        <!-- gear icon -->
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm8.94-2.61-.78 1.35a1 1 0 0 1-.9.5h-.83a7.95 7.95 0 0 1-.72 1.75l.59.59a1 1 0 0 1 0 1.42l-1.35.78a1 1 0 0 1-1.14-.19l-.59-.59c-.56.27-1.15.49-1.75.63v.83a1 1 0 0 1-.5.9l-1.35.78a1 1 0 0 1-1 0l-1.35-.78a1 1 0 0 1-.5-.9v-.83a7.9 7.9 0 0 1-1.75-.63l-.59.59a1 1 0 0 1-1.42 0L4.7 18a1 1 0 0 1 0-1.42l.59-.59c-.27-.56-.49-1.15-.63-1.75H3.83a1 1 0 0 1-.9-.5l-.78-1.35a1 1 0 0 1 .19-1.14l.59-.59c-.14-.6-.23-1.2-.26-1.82h-.83a1 1 0 0 1-.9-.5L.36 6.1a1 1 0 0 1 .19-1.14l1.35-.78a1 1 0 0 1 1 0l.83.48c.5-.45 1.04-.85 1.62-1.2l-.3-.83a1 1 0 0 1 .5-1.22L7.9.36a1 1 0 0 1 1.14.19l.59.59c.6-.14 1.2-.23 1.82-.26V.83a1 1 0 0 1 .5-.9l1.35-.78a1 1 0 0 1 1 0l1.35.78c.34.2.55.56.5.95v.83c.6.03 1.21.12 1.82.26l.59-.59a1 1 0 0 1 1.42 0L21.9 2.1a1 1 0 0 1 0 1.42l-.59.59c.35.58.65 1.19.9 1.82l.83-.48a1 1 0 0 1 1.22.5l.78 1.35a1 1 0 0 1-.19 1.14l-.59.59c.14.6.23 1.2.26 1.82h.83c.39 0 .75.19.95.5l.78 1.35a1 1 0 0 1-.19 1.14l-1.35.78a1 1 0 0 1-1 0l-.83-.48c-.25.63-.55 1.24-.9 1.82l.59.59c.3.3.38.76.19 1.14Z"/>
+        </svg>
+      </button>
+    </header>
+
+    <section class="frame-wrap">
+      <!-- iPhone frame -->
+      <div class="phone-frame">
+        <div class="phone-frame__image" aria-hidden="true"></div>
+
+        <!-- Screen viewport inside the frame -->
+        <div class="phone-screen" id="phoneScreen" role="region" aria-label="Phone screen viewport">
+          <!-- Widget card -->
+          <div class="widget-card">
+            <div class="widget-header">
+              <div class="widget-title">
+                <span class="dot"></span>
+                <h2>Today vs Yesterday</h2>
+              </div>
+              <div class="activity">
+                <label for="activity">Activity</label>
+                <select id="activity">
+                  <option value="shortform">Short-form video</option>
+                  <option value="streaming">Streaming</option>
+                  <option value="gaming">Gaming</option>
+                  <option value="social">Social</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="stats">
+              <div class="stat">
+                <div class="label">Today</div>
+                <div class="value" id="todayValue">0h 00m</div>
+                <div class="sub" id="todaySub">0 min</div>
+              </div>
+              <div class="divider"></div>
+              <div class="stat">
+                <div class="label">Yesterday</div>
+                <div class="value" id="yesterdayValue">3h 50m</div>
+                <div class="sub" id="yesterdaySub">230 min</div>
+              </div>
+            </div>
+
+            <div class="progress">
+              <div class="progress-top">
+                <div>Progress to yesterday</div>
+                <div id="progressPct">0%</div>
+              </div>
+              <div class="bar">
+                <div class="bar-fill" id="progressBar"></div>
+              </div>
+              <div class="legend">
+                <span id="deltaToYesterday">230 min left</span>
+                <span id="avg7Label">7-day avg: 4h 05m</span>
+              </div>
+            </div>
+
+            <div class="controls">
+              <button class="btn" id="playPauseBtn" aria-label="Play or pause">Play</button>
+              <button class="btn" id="add5Btn" aria-label="Add five minutes">+5m</button>
+              <button class="btn ghost" id="detailsBtn" aria-label="Details">Details</button>
+            </div>
+          </div>
+
+          <!-- Overlay (nudge) -->
+          <div class="overlay" id="overlay" aria-live="polite" aria-hidden="true">
+            <div class="overlay-card" role="dialog" aria-modal="true" aria-labelledby="overlayTitle">
+              <div class="overlay-kicker" id="overlayKicker">Motivational • Sleep</div>
+              <h3 id="overlayTitle">You are 10 min away from yesterday</h3>
+              <p id="overlayBody">Pause now and skip the “lost time” feeling.</p>
+              <div class="overlay-actions">
+                <button class="btn primary" id="ctaPause">Pause now</button>
+                <button class="btn" id="ctaLater">Later</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right rail: quick settings -->
+      <aside class="panel">
+        <h3>Simulation</h3>
+        <div class="row">
+          <label>Yesterday (min)</label>
+          <input type="number" id="yesterdayInput" min="0" step="5" value="230" />
+        </div>
+        <div class="row">
+          <label>Today (min)</label>
+          <input type="number" id="todayInput" min="0" step="5" value="0" />
+        </div>
+        <div class="row">
+          <label>7-day avg (min)</label>
+          <input type="number" id="avg7Input" min="0" step="5" value="245" />
+        </div>
+        <div class="row cols">
+          <div>
+            <label>t-minus (min)</label>
+            <input type="number" id="tMinusInput" min="0" step="1" value="15" />
+          </div>
+          <div>
+            <label>t-plus (min)</label>
+            <input type="number" id="tPlusInput" min="0" step="1" value="15" />
+          </div>
+        </div>
+        <div class="row">
+          <label>Time of day</label>
+          <select id="todInput">
+            <option value="morning">Morning</option>
+            <option value="afternoon">Afternoon</option>
+            <option value="evening" selected>Evening</option>
+          </select>
+        </div>
+        <div class="row">
+          <button class="btn danger" id="resetLearning">Reset learning</button>
+        </div>
+        <p class="hint">Learning state is stored in your browser storage only.</p>
+      </aside>
+    </section>
+  </main>
+
+  <!-- Settings drawer -->
+  <div class="drawer" id="settingsDrawer" aria-hidden="true">
+    <div class="drawer__panel" role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
+      <div class="drawer__header">
+        <h2 id="drawerTitle">Settings</h2>
+        <button class="btn icon" id="closeSettingsBtn" aria-label="Close settings">✕</button>
+      </div>
+
+      <div class="drawer__content">
+        <div class="row">
+          <label for="goalInput">Personal goal (min)</label>
+          <input type="number" id="goalInput" min="0" step="5" value="200" />
+        </div>
+        <div class="row">
+          <label for="tonePref">Default tone</label>
+          <select id="tonePref">
+            <option value="auto" selected>Auto, let it learn</option>
+            <option value="motivational">Always motivational</option>
+            <option value="mixed">Always mixed</option>
+            <option value="confrontational">Always confrontational</option>
+          </select>
+        </div>
+        <div class="row">
+          <label for="langPref">Language</label>
+          <select id="langPref">
+            <option value="en" selected>English</option>
+            <option value="nl">Nederlands</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="drawer__footer">
+        <button class="btn primary" id="saveSettings">Save</button>
+        <button class="btn" id="cancelSettings">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
